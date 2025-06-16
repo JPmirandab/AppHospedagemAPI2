@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "EaCEjlTR7uGp9zc80dM7YWhgt1rA/8Ls0zRA0MkqWbE=",
+  "Source": "AppHospedagemAPI",
+  "BasePath": "_content/AppHospedagemAPI",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}
