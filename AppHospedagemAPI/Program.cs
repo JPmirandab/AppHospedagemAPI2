@@ -1,142 +1,113 @@
 using AppHospedagemAPI.Data;
-using AppHospedagemAPI.Endpoints;
-using AppHospedagemAPI.Models;
+using AppHospedagemAPI.Endpoints; // Adicione este using
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer; // Adicione este using
+using Microsoft.IdentityModel.Tokens; // Adicione este using
+using System.Text; // Adicione este using
+using System.Security.Claims; // Adicione este using
 
-namespace AppHospedagemAPI
+var builder = WebApplication.CreateBuilder(args);
+
+// --- Configuração do Swagger/OpenAPI ---
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
 {
-    public class Program
+    // Adicione a configuração de segurança para o Swagger (Permite testar JWT)
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
-        public static void Main(string[] args)
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below. Example: \"Bearer eyJhbGciOiJIUzI1Ni...\""
+    });
+
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
         {
-            var builder = WebApplication.CreateBuilder(args);
-
-            builder.Services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-            builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
             {
-                options.SerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-            });
-
-            // Permitir CORS
-            builder.Services.AddCors(options =>
-            {
-                options.AddPolicy("AllowAll", policy =>
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
                 {
-                    policy.AllowAnyOrigin()
-                          .AllowAnyMethod()
-                          .AllowAnyHeader();
-                });
-            });
-
-
-
-            // Add services to the container.System.IO.InvalidDataException: 'Failed to load configuration from file 'C:\JoaoPedro\Projetos\AppHospedagemAPI\AppHospedagemAPI\appsettings.json'.'
-
-            builder.Services.AddAuthorization();
-
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
-
-            var app = builder.Build();
-
-            app.UseCors("AllowAll");
-
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-
-            app.UseHttpsRedirection();
-
-            app.UseAuthorization();
-            app.UseCors(policy =>
-           policy.AllowAnyOrigin()
-          .AllowAnyMethod()
-          .AllowAnyHeader());
-
-
-            app.MapClienteEndpoints();
-            app.MapQuartoEndpoints();
-            app.MapLocacaoEndpoints();
-            app.MapOcupacaoEndpoints();
-            app.MapUsuarioEndpoints();
-            app.MapResumoEndpoints();
-
-
-
-
-            app.MapPost("/login", async (Usuario credenciais, AppDbContext db) =>
-            {
-                var usuario = await db.Usuarios
-                    .FirstOrDefaultAsync(u => u.Login == credenciais.Login && u.Senha == credenciais.Senha);
-
-                if (usuario == null)
-                    return Results.Unauthorized();
-
-                return Results.Ok("Login realizado com sucesso");
-            });
-
-            app.MapPost("/resetar-dados", async (AppDbContext db) =>
-            {
-                db.Locacoes.RemoveRange(db.Locacoes);
-                db.Clientes.RemoveRange(db.Clientes);
-                db.Quartos.RemoveRange(db.Quartos);
-                await db.SaveChangesAsync();
-                return Results.Ok("Todos os dados foram apagados com sucesso.");
-            });
-
-            app.MapPost("/popular-dados", async (AppDbContext db) =>
-            {
-                var cliente1 = new Cliente { Nome = "Jo�o Silva", Telefone = "11999999999" };
-                var cliente2 = new Cliente { Nome = "Maria Souza", Telefone = "11988888888" };
-
-                var quarto1 = new Quarto { Numero = 101, QuantidadeCamas = 3, Grupo = "S�o Jos�" };
-                var quarto2 = new Quarto { Numero = 102, QuantidadeCamas = 2, Grupo = "Santa Tereza" };
-
-                db.Clientes.AddRange(cliente1, cliente2);
-                db.Quartos.AddRange(quarto1, quarto2);
-                await db.SaveChangesAsync();
-
-                var locacao1 = new Locacao
-                {
-                    ClienteId = cliente1.Id,
-                    QuartoId = quarto1.Id,
-                    TipoLocacao = "quarto",
-                    QuantidadeCamas = 0,
-                    DataEntrada = DateTime.Today,
-                    DataSaida = DateTime.Today.AddDays(2),
-                    Status = "ocupado",
-                    CheckInRealizado = true,
-                    CheckOutRealizado = false
-                };
-
-                var locacao2 = new Locacao
-                {
-                    ClienteId = cliente2.Id,
-                    QuartoId = quarto2.Id,
-                    TipoLocacao = "cama",
-                    QuantidadeCamas = 1,
-                    DataEntrada = DateTime.Today.AddDays(1),
-                    DataSaida = DateTime.Today.AddDays(3),
-                    Status = "reservado",
-                    CheckInRealizado = false,
-                    CheckOutRealizado = false
-                };
-
-                db.Locacoes.AddRange(locacao1, locacao2);
-                await db.SaveChangesAsync();
-
-                return Results.Ok("Dados de teste adicionados com sucesso.");
-            });
-
-
-
-            app.Run();
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
         }
-    }
+    });
+});
+
+
+// --- Configuração do DbContext ---
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// --- Configuração do JWT (Autenticação e Autorização) ---
+
+// 1. Configurar as opções do JWT a partir do appsettings.json
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"];
+var expiryInMinutes = Convert.ToDouble(jwtSettings["ExpiryInMinutes"]);
+
+// Verifica se a SecretKey está configurada
+if (string.IsNullOrEmpty(secretKey))
+{
+    throw new InvalidOperationException("JwtSettings:SecretKey não está configurado em appsettings.json");
 }
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false, // Em desenvolvimento, pode ser false. Em produção, true e defina Issuer
+        ValidateAudience = false, // Em desenvolvimento, pode ser false. Em produção, true e defina Audience
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey))
+    };
+});
+
+// 2. Configurar a Autorização
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("admin", policy => policy.RequireClaim(ClaimTypes.Role, "admin"));
+    options.AddPolicy("gerente", policy => policy.RequireClaim(ClaimTypes.Role, "gerente"));
+    options.AddPolicy("funcionario", policy => policy.RequireClaim(ClaimTypes.Role, "funcionario"));
+    // Você pode adicionar outras políticas conforme necessário, por exemplo, "gerenteOuAdmin"
+    // options.AddPolicy("gerenteOuAdmin", policy => policy.RequireRole("gerente", "admin"));
+});
+
+
+var app = builder.Build();
+
+// --- Configuração do Pipeline de Requisições HTTP ---
+
+// Configurar o pipeline de middleware HTTP para Swagger em ambiente de desenvolvimento
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+// Adicione os middlewares de autenticação e autorização
+app.UseAuthentication(); // Deve vir antes de UseAuthorization
+app.UseAuthorization();  // Deve vir depois de UseAuthentication
+
+// --- Mapeamento dos Endpoints ---
+app.MapUsuarioEndpoints();
+app.MapClienteEndpoints();
+app.MapQuartoEndpoints();
+app.MapLocacaoEndpoints();
+app.MapOcupacaoEndpoints();
+app.MapResumoEndpoints();
+
+app.Run();

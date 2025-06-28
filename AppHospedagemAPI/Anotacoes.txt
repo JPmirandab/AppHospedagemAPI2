@@ -1,0 +1,38 @@
+COMANDOS ESSENCIAIS: .NET EF E GIT
+
+---
+
+PARA MIGRAÇÕES DO BANCO DE DADOS (ENTITY FRAMEWORK CORE):
+
+1.  INSTALAR FERRAMENTAS EF CORE (UMA VEZ POR MÁQUINA):
+    dotnet tool install --global dotnet-ef
+
+2.  INSTALAR PACOTES EF CORE NO PROJETO (UMA VEZ POR PROJETO):
+    dotnet add package Microsoft.EntityFrameworkCore --version 8.0.6
+    dotnet add package Microsoft.EntityFrameworkCore.Design --version 8.0.6
+    dotnet add package Microsoft.EntityFrameworkCore.SqlServer --version 8.0.6
+    (IMPORTANTE: Use a versão do EF Core compatível com seu .NET SDK. Ex: 8.0.6 para .NET 8)
+
+3.  CRIAR NOVA MIGRAÇÃO (APÓS MUDANÇAS EM MODELS OU DBCONTEXT):
+    dotnet ef migrations add NomeDaSuaMigracao
+
+4.  APLICAR MIGRAÇÕES AO BANCO DE DADOS:
+    dotnet ef database update
+
+---
+
+PARA SALVAR E ENVIAR MUDANÇAS PARA O GITHUB (GIT):
+
+1.  ADICIONAR TODOS OS ARQUIVOS MODIFICADOS/NOVOS PARA O STAGE:
+    git add .
+
+2.  CRIAR UM COMMIT COM UMA MENSAGEM DESCRITIVA:
+    git commit -m "Mensagem descritiva do que foi feito"
+
+3.  ENVIAR OS COMMITS PARA O GITHUB:
+    git push
+    (Se for a primeira vez ou em um branch diferente, pode precisar de: git push -u origin main)
+
+---
+
+LEMBRETE: Execute esses comandos no terminal, DENTRO DA PASTA RAIZ DO SEU PROJETO.
