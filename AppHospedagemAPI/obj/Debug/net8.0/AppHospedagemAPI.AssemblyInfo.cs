@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AppHospedagemAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+60d760eb195a0652aee489d028940f34a7ca6a94")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b0b10bdc0ba97598fdb713a87ab5656c635d3ca6")]
 [assembly: System.Reflection.AssemblyProductAttribute("AppHospedagemAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AppHospedagemAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
